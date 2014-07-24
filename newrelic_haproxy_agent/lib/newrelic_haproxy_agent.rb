@@ -27,12 +27,18 @@ module NewRelicHaproxyAgent
     attr_reader :ident
 
     def setup_metrics
-      @requests=NewRelic::Processor::EpochCounter.new
-      @errors_req=NewRelic::Processor::EpochCounter.new
-      @errors_conn=NewRelic::Processor::EpochCounter.new
-      @errors_resp=NewRelic::Processor::EpochCounter.new
-      @bytes_in=NewRelic::Processor::EpochCounter.new
-      @bytes_out=NewRelic::Processor::EpochCounter.new
+      @requests       = NewRelic::Processor::EpochCounter.new
+      @errors_req     = NewRelic::Processor::EpochCounter.new
+      @errors_conn    = NewRelic::Processor::EpochCounter.new
+      @errors_resp    = NewRelic::Processor::EpochCounter.new
+      @bytes_in       = NewRelic::Processor::EpochCounter.new
+      @bytes_out      = NewRelic::Processor::EpochCounter.new
+      @response_1xx   = NewRelic::Processor::EpochCounter.new
+      @response_2xx   = NewRelic::Processor::EpochCounter.new
+      @response_3xx   = NewRelic::Processor::EpochCounter.new
+      @response_4xx   = NewRelic::Processor::EpochCounter.new
+      @response_5xx   = NewRelic::Processor::EpochCounter.new
+      @response_other = NewRelic::Processor::EpochCounter.new
     end
 
     def poll_cycle
@@ -63,6 +69,10 @@ module NewRelicHaproxyAgent
 
           report_metric "Bytes/Received", "Bytes/Seconds",          @bytes_in.process(row['bin'].to_i)
           report_metric "Bytes/Sent", "Bytes/Seconds",              @bytes_out.process(row['bout'].to_i)
+
+          %w[1xx 2xx 3xx 4xx 5xx other].each do |type|
+            report_metric "Response #{type}", "Response/Minute",        (@errors_resp.process(row["hrsp_#{type}"].to_i) || 0) * 60
+          end
 
           report_metric "Sessions/Active", "Sessions",              row['scur']
           report_metric "Sessions/Queued", "Sessions",              row['qcur']
